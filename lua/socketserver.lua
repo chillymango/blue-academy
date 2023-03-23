@@ -30,6 +30,26 @@ function ST_error(id, err)
 	ST_stop(id)
 end
 
+function readRam(mem_name)
+    for name, mem in pairs(emu.memory) do
+        if name == mem_name then
+            base = mem:base()
+            length = mem:bound() - mem:base()
+            msg = "Reading " .. mem_name .. " from " .. tostring(base) .. " len " .. tostring(length)
+			if length > 4096 then
+				section_1 = mem:readRange(base, length / 2)
+				section_2 = mem:readRange(base + length / 2, length / 2)
+				output = section_1 .. section_2
+			else
+				output = mem:readRange(base, length)
+			end
+            console:log(msg)
+            return output
+        end
+    end
+    console:error("Could not find %s", mem_name)
+end
+
 function ST_received(id)
 	local sock = ST_sockets[id]
 	if not sock then return end
@@ -64,16 +84,34 @@ function ST_received(id)
                 sock.send(emu:checksum())
 			elseif p == "screenshot" then
 				emu:screenshot("current.png")
+            elseif p == "dump_wram" then
+				-- NOTE: reading wram normally seems to be broken :(
+				result = emu:readRange(49152, 8192)
+                console:log(result)
+                sock:send(result)
+            elseif p == "dump_hram" then
+                result = readRam("hram")
+                console:log(result)
+                sock:send(result)
+            elseif p == "dump_sram" then
+                result = readRam("sram")
+                console:log(result)
+                sock:send(result)
+            elseif p == "dump_vram" then
+                result = readRam("vram")
+                console:log(result)
+                sock:send(result)
+			elseif p == "memtest" then
+				result = emu:readRange(53248, 4096)
+				console:log(result)
+				sock:send(result)
             elseif p == "test" then
+                console:log("test")
             else
-                console.log("Resetting keys")
+                console:log("Resetting keys")
                 emu:setKeys(0)
             end
 		else
---			if err ~= socket.ERRORS.AGAIN then
---				console:error(ST_format(id, err, true))
---				ST_stop(id)
---			end
 			return
 		end
 	end

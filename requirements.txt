@@ -1,4 +1,5 @@
-tensorflow
+pytorch
 numpy
 matplotlib
-opencv-contrib-python
+IPython
+pydantic

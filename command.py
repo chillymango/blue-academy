@@ -11,7 +11,7 @@ import typing as T
 class CommandClient:
 
     def __init__(self, host: str, port: int) -> None:
-        self.sleep_duration = 10
+        self.sleep_duration = 100
         self._host = host
         self._port = port
         self._connected = False
@@ -36,7 +36,20 @@ class CommandClient:
         self._disconnect()
         self._connect()
 
-    def dispatch(self, cmd: str) -> None:
+    def do_button_command(self, cmd: bytes) -> None:
+        self._socket.send(cmd)
+        time.sleep(self.sleep_duration / 1E3)
+        self._socket.send(b"clear")
+
+    def do_data_command(self, cmd: bytes) -> bytes:
+        """
+        Issue a command that expects a response
+        """
+        self._socket.send(cmd)
+        resp = self._socket.recv(16384)  # TODO: maybe this buffer is too large?
+        return resp
+
+    def dispatch(self, cmd: str) -> T.Optional[bytes]:
         """
         If the command is a button command, reset keys after issuing the command.
         """
@@ -44,15 +57,11 @@ class CommandClient:
             self.reset()
 
         if cmd in ["A", "B", "U", "R", "L", "D", "start", "select"]:
-            fmtcmd = f"B:{cmd}"
-        else:
-            fmtcmd = cmd
-        fmtcmd = bytes(fmtcmd, "utf-8")
-        self._socket.send(fmtcmd)
+            fmtcmd = bytes(f"B:{cmd}", 'utf-8')
+            return self.do_button_command(fmtcmd)
 
-        time.sleep(self.sleep_duration / 1E3)
-
-        self._socket.send(b"clear")
+        fmtcmd = bytes(cmd, "utf-8")
+        return self.do_data_command(fmtcmd)
 
 
 if __name__ == "__main__":
@@ -60,7 +69,9 @@ if __name__ == "__main__":
     client = CommandClient('localhost', 10018)
     while True:
         try:
-            client.dispatch(input("Command: "))
+            response = client.dispatch(input("Command: "))
+            if response is not None:
+                print(response)
         except KeyboardInterrupt:
             print("Exiting REPL")
             break
