@@ -1,0 +1,23 @@
+# Where do we start
+
+* we should be able to quickly look at the screen and be able to tell which window type we are in
+
+Window Types:
+* Overworld
+* Map
+* Start Menu
+* Pokemon View
+* Backpack
+
+Maybe we can abstract the above?
+For starters we can implement them directly and then see if we can make it figure it out on its own
+
+Action outputs should be buttons only
+if we want to get to a menu, it should have to figure out how to get there
+
+## Simultaneous Localization and Mapping (SLAM!!!!)
+* the agent needs to have some concept of where it is
+* agent location needs to be part of the state
+* we probably need to be able to do some math to figure out if we're actually in
+    a state that we've been before
+* the visual indicators on the screen should be generally uniquely identifying
