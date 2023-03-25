@@ -110,6 +110,12 @@ TEXT_LOOKUP = {
     b'\xFE': "8",
     b'\xFF': "9",
 }
+TEXT_LOOKUP.update({int.from_bytes(x): y for x, y in TEXT_LOOKUP.items()})
+
+
+def as_text(bytearr: bytes) -> str:
+    return ''.join([TEXT_LOOKUP.get(x, " ") for x in bytearr])
+
 
 class MemoryRegion:
 
@@ -213,7 +219,7 @@ class Entity(BaseModel):
             if field._type == "buffer":
                 value = b''.join(value)
             elif field.is_text:
-                value = ''.join([TEXT_LOOKUP.get(x, " ") for x in value])
+                value = as_text(value)
             else:
                 value = value[0]
 
@@ -297,8 +303,11 @@ class SpriteMap(AddressMap):
 class TileMap(AddressMap):
 
     _FIELDS = [
-        MemoryRegion("onscreen_tiles", 0x000, 0x167, type_="buffer"),  # C3A0 to C507
-        MemoryRegion("copy_buffer", 0x168, 0x0c7, type_="buffer"),  # C508 to C5CF
+        MemoryRegion("onscreen_tiles", 0x000, 0x168, type_="buffer"),  # C3A0 to C507
+        MemoryRegion("onscreen_text", 0x000, 0x168, type_="text"),  # C3A) to C507 but parse out text
+        MemoryRegion("copy_buffer", 0x168, 0x1b0, type_="buffer"),  # C508 to C5D0
+        MemoryRegion("copy_text", 0x168, 0x1b0, type_="text"),  # C508 to C5D0 but parse out text
+        MemoryRegion("total_buffer", 0x000, 0x318, type_="buffer"),  # Read the entire thing
     ]
 
 
@@ -748,6 +757,21 @@ class EventFlagsMap(AddressMap):
     ]
 
 
+class TilesetHeaderMap(AddressMap):
+    """
+    Starts at 0xD52B
+    """
+
+    _FIELDS = [
+        MemoryRegion("tileset_bank", 0x00),
+        MemoryRegion("pointer_to_blocks", 0x01, type_="H"),
+        MemoryRegion("pointer_to_gfx", 0x03, type_="H"),
+        MemoryRegion("pointer_to_collision_data", 0x05, type_="H"),
+        MemoryRegion("talking_over_tiles", 0x07, type_="buffer", len=3),
+        MemoryRegion("grass_tile", 0x08)
+    ]
+
+
 if __name__ == "__main__":
     with open("models.py", "w+") as output:
         output.write("""# This is an auto-generated file
@@ -775,3 +799,4 @@ from memparser import *  # TODO: wildcard imports are sus
         output.write(BadgesMap.write_class())
         output.write(LocationMap.write_class())
         output.write(EventFlagsMap.write_class())
+        output.write(TilesetHeaderMap.write_class())

@@ -56,60 +56,66 @@ function ST_received(id)
 	while true do
 		local p, err = sock:receive(1024)
 		if p then
-			console:log(ST_format(id, p:match("^(.-)%s*$")))
 			if p:sub(1, 2) == "B:" then
 				buttons = p:sub(3)
 				if buttons:find("U") then
 					emu:addKey(C.GBA_KEY.UP)
+					sock:send("OK")
                 elseif buttons:find("R") then
 					emu:addKey(C.GBA_KEY.RIGHT)
+					sock:send("OK")
                 elseif buttons:find("L") then
 					emu:addKey(C.GBA_KEY.LEFT)
+					sock:send("OK")
                 elseif buttons:find("D") then
 					emu:addKey(C.GBA_KEY.DOWN)
+					sock:send("OK")
                 elseif buttons:find("A") then
 					emu:addKey(C.GBA_KEY.A)
+					sock:send("OK")
                 elseif buttons:find("B") then
 					emu:addKey(C.GBA_KEY.B)
+					sock:send("OK")
                 elseif buttons == "start" then
 					emu:addKey(C.GBA_KEY.START)
-                    console:log("Start")
+					sock:send("OK")
                 elseif buttons == "select" then
 					emu:addKey(C.GBA_KEY.SELECT)
+					sock:send("OK")
                 else
                     console:log("Warning: don't recognize input")
+					sock:send("NOT OK")
 				end
 				untilKeyReset = 2
             elseif p == "checksum" then
-                sock.send(emu:checksum())
+                sock:send(emu:checksum())
 			elseif p == "screenshot" then
 				emu:screenshot("current.png")
+				sock:send("OK")
             elseif p == "dump_wram" then
 				-- NOTE: reading wram normally seems to be broken :(
 				result = emu:readRange(49152, 8192)
-                console:log(result)
                 sock:send(result)
             elseif p == "dump_hram" then
                 result = readRam("hram")
-                console:log(result)
                 sock:send(result)
             elseif p == "dump_sram" then
                 result = readRam("sram")
-                console:log(result)
                 sock:send(result)
             elseif p == "dump_vram" then
                 result = readRam("vram")
-                console:log(result)
                 sock:send(result)
+			elseif p == "fasttext" then
+				emu:write8(54101, 0)
+				sock:send('OK')
 			elseif p == "memtest" then
 				result = emu:readRange(53248, 4096)
-				console:log(result)
 				sock:send(result)
             elseif p == "test" then
                 console:log("test")
             else
-                console:log("Resetting keys")
                 emu:setKeys(0)
+				sock:send("OK")
             end
 		else
 			return
@@ -155,11 +161,16 @@ function resetKeys()
 		untilKeyReset = untilKeyReset - 1
 	end
 	if untilKeyReset == 0 then
-		emu:setKeys(0)
+		emu:write8(54101, 0)
 	end
 end
 
+function setSpeed()
+	emu:write8()
+end
+
 callbacks:add("frame", resetKeys)
+callbacks:add("frame", setSpeed)
 
 local port = 10018
 server = nil
@@ -167,7 +178,7 @@ while not server do
 	server, err = socket.bind(nil, port)
 	if err then
 		if err == socket.ERRORS.ADDRESS_IN_USE then
-			port = port + 1
+			port = port + 100
 		else
 			console:error(ST_format("Bind", err, true))
 			break

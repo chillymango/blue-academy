@@ -3,3 +3,6 @@ numpy
 matplotlib
 IPython
 pydantic
+bitstring
+tqdm
+rich

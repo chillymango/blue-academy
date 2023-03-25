@@ -30,6 +30,7 @@ class MemoryMap:
     badges: Badges = None
     location: Location = None
     events: EventFlags = None
+    pokemon: T.List[Pokemon] = list()
 
     @classmethod
     def apply_offset(cls, memory: bytes, model_klass: T.Type["Entity"], start_addr: int) -> "Entity":
@@ -57,6 +58,7 @@ class MemoryMap:
         cls.badges = Badges.hydrate_from_memory(memory, 0xD356 - cls.REGION_START_ADDR)
         cls.location = Location.hydrate_from_memory(memory, 0xD35E - cls.REGION_START_ADDR)
         cls.events = EventFlags.hydrate_from_memory(memory, 0xD5A6 - cls.REGION_START_ADDR)
+        cls.tileset_header = TilesetHeader.hydrate_from_memory(memory, 0xD52B - cls.REGION_START_ADDR)
 
         # Build Sprites
         sprite_base_addr = 0xC100
@@ -70,6 +72,6 @@ class MemoryMap:
         pokemon_incr_addr = 0x002C
         for pokemon_idx in range(6):
             addr = pokemon_base_addr + pokemon_incr_addr * pokemon_idx
-            mmap.sprites.append(Pokemon.hydrate_from_memory(memory, addr - cls.REGION_START_ADDR))
+            mmap.pokemon.append(Pokemon.hydrate_from_memory(memory, addr - cls.REGION_START_ADDR))
 
         return mmap

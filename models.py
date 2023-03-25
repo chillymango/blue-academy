@@ -40,7 +40,10 @@ class Tile(Entity):
     _MAP = PrivateAttr(default_factory=TileMap)
 
     onscreen_tiles: bytes = None
+    onscreen_text: str = None
     copy_buffer: bytes = None
+    copy_text: str = None
+    total_buffer: bytes = None
 
 
 class Menu(Entity):
@@ -522,4 +525,21 @@ class EventFlags(Entity):
     fought_snorlax_vermillion: int = 0
     fought_snorlax_celadon: int = 0
     fought_moltres: int = 0
+
+
+class TilesetHeader(Entity):
+    """
+    
+    Starts at 0xD52B
+    
+    """
+
+    _MAP = PrivateAttr(default_factory=TilesetHeaderMap)
+
+    tileset_bank: int = 0
+    pointer_to_blocks: int = 0
+    pointer_to_gfx: int = 0
+    pointer_to_collision_data: int = 0
+    talking_over_tiles: bytes = None
+    grass_tile: int = 0
 

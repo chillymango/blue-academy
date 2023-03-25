@@ -11,7 +11,7 @@ import typing as T
 class CommandClient:
 
     def __init__(self, host: str, port: int) -> None:
-        self.sleep_duration = 100
+        self.sleep_duration = 20
         self._host = host
         self._port = port
         self._connected = False
@@ -21,6 +21,7 @@ class CommandClient:
     def _connect(self) -> T.Optional[T.NoReturn]:
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._socket.connect((self._host, self._port))
+        self._socket.settimeout(1.0)  # localhost
         self._connected = True
 
     def _disconnect(self) -> None:
@@ -37,17 +38,26 @@ class CommandClient:
         self._connect()
 
     def do_button_command(self, cmd: bytes) -> None:
-        self._socket.send(cmd)
-        time.sleep(self.sleep_duration / 1E3)
-        self._socket.send(b"clear")
+        try:
+            self._socket.send(cmd)
+            self._socket.recv(128)
+        except TimeoutError:
+            print("Timed out on socket read in button command")
+        finally:
+            self._socket.send(b"clear")  # best effort here
+            self._socket.recv(128)
 
     def do_data_command(self, cmd: bytes) -> bytes:
         """
         Issue a command that expects a response
         """
         self._socket.send(cmd)
-        resp = self._socket.recv(16384)  # TODO: maybe this buffer is too large?
-        return resp
+        try:
+            resp = self._socket.recv(16384)  # TODO: maybe this buffer is too large?
+            return resp
+        except TimeoutError:
+            print("Timed out on socket read")
+            return b" " * 8192
 
     def dispatch(self, cmd: str) -> T.Optional[bytes]:
         """
